@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MegaGear – Drive the Future</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <style>
+    :root {
+      --mg-red: #E8001C;
+      --mg-gold: #C9A84C;
+      --mg-dark: #0A0A0A;
+      --mg-card: #111111;
+      --mg-border: #1E1E1E;
+      --mg-text: #F5F5F5;
+      --mg-muted: #888888;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--mg-dark);
+      color: var(--mg-text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── NAVBAR ── */
+    .mg-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 0 40px;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--mg-border);
+    }
+    .mg-logo {
+      font-size: 1.4rem; font-weight: 800; letter-spacing: 3px;
+      color: var(--mg-text); text-decoration: none;
+    }
+    .mg-logo span { color: var(--mg-red); }
+    .mg-nav-links { display: flex; gap: 32px; list-style: none; margin: 0; padding: 0; }
+    .mg-nav-links a {
+      font-size: .8rem; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--mg-muted); text-decoration: none; transition: color .2s;
+    }
+    .mg-nav-links a:hover { color: var(--mg-text); }
+    .mg-nav-cta {
+      font-size: .8rem; letter-spacing: 1.5px; text-transform: uppercase;
+      background: var(--mg-red); color: #fff; border: none;
+      padding: 8px 22px; cursor: pointer; transition: background .2s;
+    }
+    .mg-nav-cta:hover { background: #c0001a; }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      height: 100vh; min-height: 640px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: 80px;
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.7) 70%, rgba(10,10,10,1) 100%),
+        url('https://images.unsplash.com/photo-1617788138017-80ad40651399?w=1800&q=80') center/cover no-repeat;
+      text-align: center;
+    }
+
+    /* RED STRIPE — signature element */
+    .hero::before {
+      content: '';
+      position: absolute;
+      bottom: 120px; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(to right, transparent, var(--mg-red), transparent);
+      opacity: 0.6;
+    }
+
+    .hero-badge {
+      font-size: .7rem; letter-spacing: 4px; text-transform: uppercase;
+      color: var(--mg-gold); margin-bottom: 16px;
+    }
+    .hero-title {
+      font-size: clamp(2.8rem, 7vw, 6rem);
+      font-weight: 800; letter-spacing: -1px; line-height: 1.05;
+      margin-bottom: 12px;
+    }
+    .hero-title span { color: var(--mg-red); }
+    .hero-sub {
+      font-size: 1rem; color: var(--mg-muted); margin-bottom: 36px;
+      letter-spacing: .5px;
+    }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-mg-primary {
+      background: var(--mg-red); color: #fff; border: none;
+      padding: 14px 36px; font-size: .85rem; letter-spacing: 2px;
+      text-transform: uppercase; font-weight: 600; cursor: pointer;
+      transition: background .2s, transform .15s;
+    }
+    .btn-mg-primary:hover { background: #c0001a; transform: translateY(-1px); }
+    .btn-mg-secondary {
+      background: transparent; color: var(--mg-text);
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 14px 36px; font-size: .85rem; letter-spacing: 2px;
+      text-transform: uppercase; font-weight: 600; cursor: pointer;
+      transition: border-color .2s, transform .15s;
+    }
+    .btn-mg-secondary:hover { border-color: #fff; transform: translateY(-1px); }
+
+    /* scroll cue */
+    .scroll-cue {
+      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      font-size: .65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--mg-muted);
+    }
+    .scroll-cue i { animation: bounce 2s infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      background: var(--mg-card);
+      border-bottom: 1px solid var(--mg-border);
+      border-top: 1px solid var(--mg-border);
+    }
+    .stat-item { padding: 32px 0; text-align: center; }
+    .stat-value {
+      font-size: 2.2rem; font-weight: 800; color: var(--mg-text);
+      line-height: 1;
+    }
+    .stat-value sup { font-size: 1rem; color: var(--mg-red); font-weight: 700; }
+    .stat-label { font-size: .7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--mg-muted); margin-top: 4px; }
+    .stat-divider { border-left: 1px solid var(--mg-border); }
+
+    /* ── SECTION COMMONS ── */
+    section { padding: 100px 0; }
+    .section-eyebrow {
+      font-size: .7rem; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--mg-red); margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800;
+      line-height: 1.1; margin-bottom: 16px;
+    }
+    .section-body { color: var(--mg-muted); line-height: 1.8; font-size: .95rem; }
+
+    /* ── MODEL CARD ── */
+    .model-card {
+      background: var(--mg-card);
+      border: 1px solid var(--mg-border);
+      transition: border-color .3s, transform .3s;
+      overflow: hidden;
+    }
+    .model-card:hover { border-color: var(--mg-red); transform: translateY(-4px); }
+    .model-img {
+      width: 100%; height: 240px; object-fit: cover;
+      display: block; filter: brightness(.85);
+      transition: filter .3s;
+    }
+    .model-card:hover .model-img { filter: brightness(1); }
+    .model-body { padding: 28px; }
+    .model-tag {
+      font-size: .65rem; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--mg-gold); margin-bottom: 8px;
+    }
+    .model-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+    .model-desc { font-size: .85rem; color: var(--mg-muted); margin-bottom: 20px; line-height: 1.6; }
+    .model-specs { display: flex; gap: 20px; margin-bottom: 24px; }
+    .model-spec-item { }
+    .model-spec-val { font-size: 1.1rem; font-weight: 700; color: var(--mg-text); }
+    .model-spec-lbl { font-size: .65rem; color: var(--mg-muted); letter-spacing: 1px; text-transform: uppercase; }
+    .btn-order {
+      width: 100%; background: transparent; color: var(--mg-text);
+      border: 1px solid var(--mg-border); padding: 12px;
+      font-size: .75rem; letter-spacing: 2px; text-transform: uppercase;
+      cursor: pointer; transition: background .2s, border-color .2s;
+    }
+    .btn-order:hover { background: var(--mg-red); border-color: var(--mg-red); }
+
+    /* ── TECH FEATURE ── */
+    .tech-dark { background: #050505; }
+    .feature-icon {
+      width: 52px; height: 52px;
+      border: 1px solid var(--mg-border);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      color: var(--mg-red); font-size: 1.3rem;
+    }
+    .feature-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-desc { font-size: .85rem; color: var(--mg-muted); line-height: 1.7; }
+
+    /* ── FULL BLEED IMAGE SECTION ── */
+    .bleed-section {
+      position: relative; height: 70vh; min-height: 400px;
+      background:
+        linear-gradient(to right, rgba(10,10,10,0.85) 40%, transparent 100%),
+        url('https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=1800&q=80') center/cover no-repeat;
+      display: flex; align-items: center;
+    }
+    .bleed-content { padding: 60px; max-width: 520px; }
+    .bleed-title { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 800; margin-bottom: 16px; }
+    .bleed-body { color: var(--mg-muted); line-height: 1.8; margin-bottom: 28px; }
+
+    /* ── CHARGING ── */
+    .charge-bar-wrap { margin-top: 12px; }
+    .charge-label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--mg-muted); margin-bottom: 6px; }
+    .charge-track {
+      height: 4px; background: var(--mg-border); position: relative; overflow: hidden;
+    }
+    .charge-fill {
+      height: 100%; background: linear-gradient(to right, var(--mg-red), var(--mg-gold));
+      animation: chargeAnim 2.5s ease-out forwards;
+    }
+    @keyframes chargeAnim { from{width:0} }
+
+    /* ── TESTIMONIAL ── */
+    .testimonial-card {
+      background: var(--mg-card); border: 1px solid var(--mg-border);
+      padding: 36px; position: relative;
+    }
+    .testimonial-card::before {
+      content: '"'; font-size: 5rem; font-weight: 900; line-height: 1;
+      color: var(--mg-red); opacity: .2;
+      position: absolute; top: 16px; left: 24px;
+    }
+    .testimonial-text { font-size: .95rem; line-height: 1.8; color: var(--mg-muted); margin-bottom: 20px; }
+    .testimonial-author { font-size: .8rem; font-weight: 700; letter-spacing: 1px; }
+    .testimonial-role { font-size: .72rem; color: var(--mg-muted); }
+
+    /* ── CTA SECTION ── */
+    .cta-section {
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a0005 100%);
+      border-top: 1px solid var(--mg-border);
+      text-align: center; padding: 120px 0;
+    }
+    .cta-title { font-size: clamp(2rem, 5vw, 4rem); font-weight: 800; margin-bottom: 16px; }
+    .cta-title span { color: var(--mg-red); }
+    .cta-sub { color: var(--mg-muted); margin-bottom: 40px; font-size: .95rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #050505;
+      border-top: 1px solid var(--mg-border);
+      padding: 48px 0 24px;
+    }
+    .footer-logo { font-size: 1.2rem; font-weight: 800; letter-spacing: 3px; margin-bottom: 10px; }
+    .footer-logo span { color: var(--mg-red); }
+    .footer-tagline { font-size: .78rem; color: var(--mg-muted); }
+    .footer-links { list-style: none; padding: 0; margin: 0; }
+    .footer-links li { margin-bottom: 8px; }
+    .footer-links a { font-size: .8rem; color: var(--mg-muted); text-decoration: none; transition: color .2s; }
+    .footer-links a:hover { color: var(--mg-text); }
+    .footer-heading { font-size: .7rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; color: var(--mg-text); }
+    .footer-bottom { border-top: 1px solid var(--mg-border); margin-top: 36px; padding-top: 20px; font-size: .72rem; color: var(--mg-muted); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .mg-nav-links { display: none; }
+      .bleed-content { padding: 32px; }
+      .stat-divider { border-left: none; border-top: 1px solid var(--mg-border); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="mg-nav">
+  <a class="mg-logo" href="#"><span>MEGA</span>GEAR</a>
+  <ul class="mg-nav-links">
+    <li><a href="#models">Models</a></li>
+    <li><a href="#tech">Technology</a></li>
+    <li><a href="#charging">Charging</a></li>
+    <li><a href="#about">About</a></li>
+  </ul>
+  <button class="mg-nav-cta">Order Now</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <p class="hero-badge">New Generation 2025</p>
+  <h1 class="hero-title">Drive Beyond<br><span>Limits</span></h1>
+  <p class="hero-sub">Pure electric. Zero compromise. Chinese engineering at its peak.</p>
+  <div class="hero-btns">
+    <button class="btn-mg-primary">Order MG-X1</button>
+    <button class="btn-mg-secondary">Explore Models</button>
+  </div>
+  <div class="scroll-cue">
+    <span>Discover</span>
+    <i class="fa-solid fa-chevron-down"></i>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="container-fluid px-0">
+    <div class="row g-0 text-center">
+      <div class="col-6 col-md-3 stat-item">
+        <div class="stat-value">0–100<sup>km/h</sup></div>
+        <div class="stat-label">in 2.9 sec</div>
+      </div>
+      <div class="col-6 col-md-3 stat-item stat-divider">
+        <div class="stat-value">820<sup>km</sup></div>
+        <div class="stat-label">max range</div>
+      </div>
+      <div class="col-6 col-md-3 stat-item stat-divider">
+        <div class="stat-value">480<sup>kW</sup></div>
+        <div class="stat-label">peak power</div>
+      </div>
+      <div class="col-6 col-md-3 stat-item stat-divider">
+        <div class="stat-value">20<sup>min</sup></div>
+        <div class="stat-label">10–80% charge</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODELS -->
+<section id="models">
+  <div class="container">
+    <div class="row mb-5">
+      <div class="col-12">
+        <p class="section-eyebrow">Our Lineup</p>
+        <h2 class="section-title">Pick Your Machine</h2>
+      </div>
+    </div>
+    <div class="row g-4">
+
+      <!-- MG-X1 -->
+      <div class="col-12 col-md-4">
+        <div class="model-card">
+          <img class="model-img" src="https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80" alt="MG-X1"/>
+          <div class="model-body">
+            <p class="model-tag">Sedan · Flagship</p>
+            <h3 class="model-name">MG-X1</h3>
+            <p class="model-desc">Our boldest statement. Aerodynamic mastery meets 800V ultra-fast charging architecture.</p>
+            <div class="model-specs">
+              <div class="model-spec-item">
+                <div class="model-spec-val">2.9s</div>
+                <div class="model-spec-lbl">0–100</div>
+              </div>
+              <div class="model-spec-item">
+                <div class="model-spec-val">820km</div>
+                <div class="model-spec-lbl">Range</div>
+              </div>
+              <div class="model-spec-item">
+                <div class="model-spec-val">¥368k</div>
+                <div class="model-spec-lbl">From</div>
+              </div>
+            </div>
+            <button class="btn-order">Order Now</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MG-S7 -->
+      <div class="col-12 col-md-4">
+        <div class="model-card">
+          <img class="model-img" src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80" alt="MG-S7"/>
+          <div class="model-body">
+            <p class="model-tag">SUV · Family</p>
+            <h3 class="model-name">MG-S7</h3>
+            <p class="model-desc">Commanding presence, seven seats, and intelligence-first cabin designed for the modern family.</p>
+            <div class="model-specs">
+              <div class="model-spec-item">
+                <div class="model-spec-val">4.1s</div>
+                <div class="model-spec-lbl">0–100</div>
+              </div>
+              <div class="model-spec-item">
+                <div class="model-spec-val">680km</div>
+                <div class="model-spec-lbl">Range</div>
+              </div>
+              <div class="model-spec-item">
+                <div class="model-spec-val">¥289k</div>
+                <div class="model-spec-lbl">From</div>
+              </div>
+            </div>
+            <button class="btn-order">Order Now</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MG-R -->
+      <div class="col-12 col-md-4">
+        <div class="model-card">
+          <img class="model-img" src="https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&q=80" alt="MG-R"/>
+          <div class="model-body">
+            <p class="model-tag">Roadster · Sport</p>
+            <h3 class="model-name">MG-R</h3>
+            <p class="model-desc">Track-tuned. Road-legal. The electric roadster that redefined what Chinese sports cars can be.</p>
+            <div class="model-specs">
+              <div class="model-spec-item">
+                <div class="model-spec-val">1.9s</div>
+                <div class="model-spec-lbl">0–100</div>
+              </div>
+              <div class="model-spec-item">
+                <div class="model-spec-val">540km</div>
+                <div class="model-spec-lbl">Range</div>
+              </div>
+              <div class="model-spec-item">
+                <div class="model-spec-val">¥498k</div>
+                <div class="model-spec-lbl">From</div>
+              </div>
+            </div>
+            <button class="btn-order">Order Now</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FULL BLEED — AUTOPILOT -->
+<div class="bleed-section">
+  <div class="bleed-content">
+    <p class="section-eyebrow">MegaGear Vision AI</p>
+    <h2 class="bleed-title">See Everything.<br>Miss Nothing.</h2>
+    <p class="bleed-body">12 cameras, 5 radar units, and 32 ultrasonic sensors feed our proprietary neural network — processing 40 trillion operations per second for full-surround awareness.</p>
+    <button class="btn-mg-primary">Learn About Autopilot</button>
+  </div>
+</div>
+
+<!-- TECH FEATURES -->
+<section id="tech" class="tech-dark">
+  <div class="container">
+    <div class="row mb-5">
+      <div class="col-12">
+        <p class="section-eyebrow">Engineering</p>
+        <h2 class="section-title">Built Different</h2>
+      </div>
+    </div>
+    <div class="row g-4">
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="feature-icon"><i class="fa-solid fa-bolt"></i></div>
+        <h4 class="feature-title">800V Architecture</h4>
+        <p class="feature-desc">Our 800V platform charges 4× faster than conventional EVs and sustains peak performance under sustained load.</p>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="feature-icon"><i class="fa-solid fa-brain"></i></div>
+        <h4 class="feature-title">MegaMind OS</h4>
+        <p class="feature-desc">An in-house operating system with over-the-air updates, adaptive learning, and a 15.6" 8K cockpit display.</p>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <h4 class="feature-title">DragonCell Battery</h4>
+        <p class="feature-desc">Blade-cell LFP chemistry with thermal runaway prevention, rated for 1.2 million kilometers of cycle life.</p>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="feature-icon"><i class="fa-solid fa-wind"></i></div>
+        <h4 class="feature-title">0.19 Cd Drag</h4>
+        <p class="feature-desc">The most aerodynamic production car in its class, shaped in 3,000+ hours of computational fluid dynamics.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHARGING -->
+<section id="charging">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-12 col-lg-5">
+        <p class="section-eyebrow">MegaCharge Network</p>
+        <h2 class="section-title">Power in<br>20 Minutes</h2>
+        <p class="section-body mb-4">Over 12,000 ultra-fast stations across China, with global expansion underway. Plug in anywhere — at home, at work, on the highway.</p>
+        <button class="btn-mg-primary">Find a Station</button>
+      </div>
+      <div class="col-12 col-lg-7">
+        <div class="charge-bar-wrap mb-4">
+          <div class="charge-label"><span>Arrival (12%)</span><span>Full (100%) — 42 min</span></div>
+          <div class="charge-track"><div class="charge-fill" style="width:100%"></div></div>
+        </div>
+        <div class="charge-bar-wrap mb-4">
+          <div class="charge-label"><span>10%</span><span>80% — 20 min (MegaCharge Ultra)</span></div>
+          <div class="charge-track"><div class="charge-fill" style="width:80%; animation-duration:2s"></div></div>
+        </div>
+        <div class="charge-bar-wrap">
+          <div class="charge-label"><span>Home overnight</span><span>Full charge by morning</span></div>
+          <div class="charge-track"><div class="charge-fill" style="width:100%; animation-duration:3s; background: linear-gradient(to right,#C9A84C,#E8001C)"></div></div>
+        </div>
+        <p class="mt-4" style="font-size:.75rem;color:var(--mg-muted)">All charge times based on MG-X1 100kWh pack. Actual times vary.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="about" class="tech-dark">
+  <div class="container">
+    <div class="row mb-5">
+      <div class="col-12">
+        <p class="section-eyebrow">Owners Say</p>
+        <h2 class="section-title">The MegaGear Experience</h2>
+      </div>
+    </div>
+    <div class="row g-4">
+      <div class="col-12 col-md-4">
+        <div class="testimonial-card">
+          <p class="testimonial-text">The MG-X1 made every other car I've driven feel obsolete. Acceleration, software, ride quality — nothing comes close at this price.</p>
+          <div class="testimonial-author">Li Wei</div>
+          <div class="testimonial-role">Tech founder, Shanghai</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="testimonial-card">
+          <p class="testimonial-text">I drove from Beijing to Xi'an on a single charge. The MegaCharge network is genuinely impressive — 15 minutes and I was back on the road.</p>
+          <div class="testimonial-author">Zhang Mei</div>
+          <div class="testimonial-role">Architect, Beijing</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="testimonial-card">
+          <p class="testimonial-text">As a car designer, the 0.19 Cd drag coefficient and the interior craft of the MG-R made me genuinely emotional. China has arrived.</p>
+          <div class="testimonial-author">Arjun Sharma</div>
+          <div class="testimonial-role">Automotive designer, Chengdu</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="cta-title">Ready to <span>Go Electric?</span></h2>
+    <p class="cta-sub">Join 200,000+ MegaGear owners. Configure your vehicle in minutes.</p>
+    <div class="d-flex gap-3 justify-content-center flex-wrap">
+      <button class="btn-mg-primary" style="font-size:.9rem;padding:16px 48px;">Order Today</button>
+      <button class="btn-mg-secondary" style="font-size:.9rem;padding:16px 48px;">Book a Test Drive</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-12 col-md-4">
+        <div class="footer-logo"><span>MEGA</span>GEAR</div>
+        <p class="footer-tagline">Drive the Future.<br>Made in China. Built for the World.</p>
+      </div>
+      <div class="col-6 col-md-2">
+        <p class="footer-heading">Vehicles</p>
+        <ul class="footer-links">
+          <li><a href="#">MG-X1</a></li>
+          <li><a href="#">MG-S7</a></li>
+          <li><a href="#">MG-R</a></li>
+          <li><a href="#">Upcoming</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-md-2">
+        <p class="footer-heading">Energy</p>
+        <ul class="footer-links">
+          <li><a href="#">MegaCharge</a></li>
+          <li><a href="#">Home Charger</a></li>
+          <li><a href="#">DragonCell</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-md-2">
+        <p class="footer-heading">Company</p>
+        <ul class="footer-links">
+          <li><a href="#">About</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press</a></li>
+          <li><a href="#">Investors</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-md-2">
+        <p class="footer-heading">Support</p>
+        <ul class="footer-links">
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Service Centers</a></li>
+          <li><a href="#">Manual</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom d-flex justify-content-between flex-wrap gap-2">
+      <span>© 2025 MegaGear Electric Co., Ltd. All rights reserved.</span>
+      <span>
+        <a href="#" style="color:var(--mg-muted);text-decoration:none;margin-right:16px">Privacy</a>
+        <a href="#" style="color:var(--mg-muted);text-decoration:none;">Legal</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Intersection Observer for charge bar animation re-trigger
+  const fills = document.querySelectorAll('.charge-fill');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if(e.isIntersecting) {
+        e.target.style.animation = 'none';
+        e.target.offsetHeight; // reflow
+        e.target.style.animation = '';
+      }
+    });
+  }, { threshold: 0.3 });
+  fills.forEach(f => obs.observe(f));
+</script>
+</body>
+</html>

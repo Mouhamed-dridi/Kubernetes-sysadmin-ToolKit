@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teslacars
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teslacars
+  template:
+    metadata:
+      labels:
+        app: teslacars
+    spec:
+      containers:
+        - name: teslacars
+          image: moahmed101/teslacars:1.0
+
+          ports:
+            - containerPort: 80
