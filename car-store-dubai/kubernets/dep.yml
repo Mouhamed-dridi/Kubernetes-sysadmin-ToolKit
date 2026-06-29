@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carshop-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: carshop
+  template:
+    metadata:
+      labels:
+        app: carshop
+    spec:
+      containers:
+        - name: carshop
+          image: yourusername/carshop:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carshop-service
+spec:
+  selector:
+    app: carshop
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 80
+  type: LoadBalancer

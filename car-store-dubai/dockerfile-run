@@ -1,0 +1,17 @@
+docker build -t carshop .
+
+
+
+docker run -p 3000:80 carshop
+
+
+docker build -t yourusername/carshop:v1.0.0 .
+
+
+
+docker tag carshop:latest yourusername/carshop:latest
+
+
+docker push yourusername/carshop:v1.0.0
+
+
