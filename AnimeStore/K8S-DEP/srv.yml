@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: anime-service
+spec:
+  selector:
+    app: anime
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: ClusterIP

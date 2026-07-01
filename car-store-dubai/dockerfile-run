@@ -11,6 +11,8 @@ docker build -t yourusername/carshop:v1.0.0 .
 
 docker tag carshop:latest yourusername/carshop:latest
 
+moahmed101/dubai_cars_shop:tagname
+
 
 docker push yourusername/carshop:v1.0.0
 

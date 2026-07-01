@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: carshop
-          image: yourusername/carshop:latest
+          image: moahmed101/dubai_cars_shop:v1
           ports:
             - containerPort: 80
 ---
