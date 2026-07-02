@@ -2,55 +2,47 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Figure } from '@/lib/types';
-import staticFigures from '@/lib/figures';
 
 interface FiguresContextType {
   allFigures: Figure[];
-  addFigure: (name: string, price: number, imageData: string) => void;
+  addFigure: (name: string, price: number, imageData: string) => Promise<void>;
+  loading: boolean;
 }
 
 const FiguresContext = createContext<FiguresContextType>({} as FiguresContextType);
 
-const CUSTOM_KEY = 'custom_figures';
-let nextCustomId = 1000;
-
 export function FiguresProvider({ children }: { children: ReactNode }) {
-  const [customFigures, setCustomFigures] = useState<Figure[]>([]);
+  const [allFigures, setAllFigures] = useState<Figure[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const saved = localStorage.getItem(CUSTOM_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setCustomFigures(parsed);
-      if (parsed.length > 0) {
-        nextCustomId = Math.max(...parsed.map((f: Figure) => f.id)) + 1;
-      }
-    }
-  }, []);
-
-  useEffect(() => {
+  const fetchFigures = useCallback(async () => {
     try {
-      localStorage.setItem(CUSTOM_KEY, JSON.stringify(customFigures));
-    } catch {
-      console.warn('localStorage quota exceeded. Unable to save custom figures.');
+      const res = await fetch('/api/figures');
+      const data = await res.json();
+      setAllFigures(data);
+    } catch (err) {
+      console.error('Failed to fetch figures:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [customFigures]);
-
-  const addFigure = useCallback((name: string, price: number, imageData: string) => {
-    const newFigure: Figure = {
-      id: nextCustomId++,
-      name,
-      price,
-      image: imageData,
-      category: 'Custom',
-    };
-    setCustomFigures(prev => [...prev, newFigure]);
   }, []);
 
-  const allFigures = [...staticFigures, ...customFigures];
+  useEffect(() => {
+    fetchFigures();
+  }, [fetchFigures]);
+
+  const addFigure = useCallback(async (name: string, price: number, imageData: string) => {
+    const res = await fetch('/api/figures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, price, image: imageData }),
+    });
+    const newFigure = await res.json();
+    setAllFigures(prev => [...prev, newFigure]);
+  }, []);
 
   return (
-    <FiguresContext.Provider value={{ allFigures, addFigure }}>
+    <FiguresContext.Provider value={{ allFigures, addFigure, loading }}>
       {children}
     </FiguresContext.Provider>
   );

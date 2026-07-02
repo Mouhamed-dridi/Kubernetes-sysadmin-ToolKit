@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: anime
-        image: animev1
-        imagePullPolicy: Never
+        image: moahmed101/animev1:storev1
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
