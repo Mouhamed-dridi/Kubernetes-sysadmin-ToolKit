@@ -1,0 +1,3 @@
+docker build -t moahmed101/animev1:storev1 .
+docker push moahmed101/animev1:storev1
+kubectl rollout restart deployment anime-deployment
