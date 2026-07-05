@@ -23,5 +23,9 @@ export const resetData = () => api.post('/reset');
 export const updateProfile = (username) => api.post('/update-profile', { username });
 export const changePassword = (currentPassword, newPassword) => api.post('/change-password', { currentPassword, newPassword });
 export const uploadAvatar = (avatar) => api.post('/upload-avatar', { avatar });
+export const getUsers = () => api.get('/admin/users');
+export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
+export const getConfig = () => api.get('/admin/config');
+export const updateConfig = (key, value) => api.post('/admin/config', { key, value });
 
 export default api;

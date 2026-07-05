@@ -25,10 +25,11 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            avatar TEXT
+            avatar TEXT,
+            is_admin INTEGER DEFAULT 0
         )`);
-        // Add avatar column if missing (for existing databases)
         db.run(`ALTER TABLE users ADD COLUMN avatar TEXT`, () => {});
+        db.run(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`, () => {});
         db.run(`CREATE TABLE IF NOT EXISTS passwords (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -37,32 +38,82 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
             encrypted_password TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )`);
+        db.run(`CREATE TABLE IF NOT EXISTS config (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )`);
+        db.run(`INSERT OR IGNORE INTO config (key, value) VALUES ('encryption_algo', 'aes-256-cbc')`);
     }
 });
 
 // Encryption setup (AES-256-CBC)
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
 const IV_LENGTH = 16;
+let encryptionAlgo = 'aes-256-cbc';
+
+const ALGO_KEY_LENGTHS = {
+    'aes-128-cbc': 16,
+    'aes-128-gcm': 16,
+    'aes-192-cbc': 24,
+    'aes-192-gcm': 24,
+    'aes-256-cbc': 32,
+    'aes-256-gcm': 32,
+};
+
+function getAlgoKey(algo) {
+    const len = ALGO_KEY_LENGTHS[algo] || 32;
+    const key = Buffer.from(ENCRYPTION_KEY, 'hex');
+    if (key.length === len) return key;
+    // Derive correct key length via hash
+    return crypto.createHash('sha256').update(ENCRYPTION_KEY).digest().subarray(0, len);
+}
 
 function encrypt(text) {
     if (!text) return text;
-    let iv = crypto.randomBytes(IV_LENGTH);
-    let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
+    const algo = encryptionAlgo;
+    const key = getAlgoKey(algo);
+    const isGCM = algo.endsWith('-gcm');
+    const ivLength = isGCM ? 16 : 16;
+    let iv = crypto.randomBytes(ivLength);
+    let cipher = crypto.createCipheriv(algo, key, iv);
     let encrypted = cipher.update(text, 'utf8');
     encrypted = Buffer.concat([encrypted, cipher.final()]);
+    if (isGCM) {
+        const authTag = cipher.getAuthTag();
+        return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted.toString('hex');
+    }
     return iv.toString('hex') + ':' + encrypted.toString('hex');
 }
 
 function decrypt(text) {
     if (!text) return text;
+    const algo = encryptionAlgo;
+    const key = getAlgoKey(algo);
+    const isGCM = algo.endsWith('-gcm');
+    if (isGCM) {
+        let parts = text.split(':');
+        let iv = Buffer.from(parts.shift(), 'hex');
+        let authTag = Buffer.from(parts.shift(), 'hex');
+        let encryptedText = Buffer.from(parts.join(':'), 'hex');
+        let decipher = crypto.createDecipheriv(algo, key, iv);
+        decipher.setAuthTag(authTag);
+        let decrypted = decipher.update(encryptedText);
+        decrypted = Buffer.concat([decrypted, decipher.final()]);
+        return decrypted.toString();
+    }
     let textParts = text.split(':');
     let iv = Buffer.from(textParts.shift(), 'hex');
     let encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
+    let decipher = crypto.createDecipheriv(algo, key, iv);
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
 }
+
+// Load encryption algo from config on startup
+db.get(`SELECT value FROM config WHERE key = 'encryption_algo'`, [], (err, row) => {
+    if (row && ALGO_KEY_LENGTHS[row.value]) encryptionAlgo = row.value;
+});
 
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
@@ -95,7 +146,7 @@ app.post('/api/register', (req, res) => {
         }
         const token = generateToken();
         tokens.set(token, this.lastID);
-        res.json({ success: true, token, user: { id: this.lastID, username } });
+        res.json({ success: true, token, user: { id: this.lastID, username, is_admin: false } });
     });
 });
 
@@ -113,7 +164,7 @@ app.post('/api/login', (req, res) => {
 
         const token = generateToken();
         tokens.set(token, user.id);
-        res.json({ success: true, token, user: { id: user.id, username: user.username } });
+        res.json({ success: true, token, user: { id: user.id, username: user.username, is_admin: !!user.is_admin } });
     });
 });
 
@@ -127,9 +178,9 @@ app.post('/api/logout', authenticate, (req, res) => {
 
 // Get current user info
 app.get('/api/me', authenticate, (req, res) => {
-    db.get(`SELECT id, username, avatar FROM users WHERE id = ?`, [req.userId], (err, user) => {
+    db.get(`SELECT id, username, avatar, is_admin FROM users WHERE id = ?`, [req.userId], (err, user) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ user });
+        res.json({ user: { ...user, is_admin: !!user.is_admin } });
     });
 });
 
@@ -226,10 +277,73 @@ app.post('/api/reset', authenticate, (req, res) => {
     });
 });
 
+// Admin middleware
+function adminAuth(req, res, next) {
+    db.get(`SELECT is_admin FROM users WHERE id = ?`, [req.userId], (err, user) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!user || !user.is_admin) return res.status(403).json({ error: 'Admin access required' });
+        next();
+    });
+}
+
+// Admin: list all users with password count
+app.get('/api/admin/users', authenticate, adminAuth, (req, res) => {
+    db.all(`SELECT u.id, u.username, u.avatar, u.is_admin,
+            (SELECT COUNT(*) FROM passwords WHERE user_id = u.id) as password_count
+            FROM users u ORDER BY u.id`, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows.map(u => ({ ...u, is_admin: !!u.is_admin })));
+    });
+});
+
+// Admin: delete a user and their passwords
+app.delete('/api/admin/users/:id', authenticate, adminAuth, (req, res) => {
+    const targetId = parseInt(req.params.id);
+    if (targetId === req.userId) return res.status(400).json({ error: 'Cannot delete your own account' });
+
+    db.run(`DELETE FROM passwords WHERE user_id = ?`, [targetId], () => {
+        db.run(`DELETE FROM users WHERE id = ?`, [targetId], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
+            // Remove any active tokens for the deleted user
+            for (const [token, uid] of tokens.entries()) {
+                if (uid === targetId) tokens.delete(token);
+            }
+            res.json({ success: true });
+        });
+    });
+});
+
+// Admin: get configuration
+app.get('/api/admin/config', authenticate, adminAuth, (req, res) => {
+    db.all(`SELECT key, value FROM config`, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const config = {};
+        rows.forEach(r => config[r.key] = r.value);
+        res.json(config);
+    });
+});
+
+// Admin: update configuration
+app.post('/api/admin/config', authenticate, adminAuth, (req, res) => {
+    const { key, value } = req.body;
+    if (!key || value === undefined) return res.status(400).json({ error: 'Key and value required' });
+
+    if (key === 'encryption_algo') {
+        if (!ALGO_KEY_LENGTHS[value]) return res.status(400).json({ error: 'Invalid algorithm' });
+        encryptionAlgo = value;
+    }
+
+    db.run(`INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)`, [key, value], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
 // Seed default admin account
 function seedDefault() {
     const hash = bcrypt.hashSync('admin123', 10);
-    db.run(`INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)`, ['admin', hash]);
+    db.run(`INSERT OR IGNORE INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)`, ['admin', hash]);
     console.log('Default account: admin / admin123');
 }
 

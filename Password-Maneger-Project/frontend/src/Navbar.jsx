@@ -14,6 +14,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const initial = user?.username?.charAt(0).toUpperCase() || 'U';
+  const visibleItems = user?.is_admin ? navItems.filter(i => i.path !== '/upload') : navItems;
 
   return (
     <Box as="nav" borderBottomWidth="1px" bg="bg.panel" px={6} py={3}>
@@ -25,7 +26,7 @@ export default function Navbar() {
           </Heading>
         </Flex>
         <Flex align="center" gap={1}>
-          {navItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (
