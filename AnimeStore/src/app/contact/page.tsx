@@ -2,6 +2,8 @@
 
 import { useState, useRef } from 'react';
 
+
+
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
@@ -16,7 +18,7 @@ export default function ContactPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/contact', {
+      const res = await fetch(`/api/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

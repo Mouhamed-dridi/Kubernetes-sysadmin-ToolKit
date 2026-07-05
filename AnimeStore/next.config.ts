@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/home", destination: "/" },
       { source: "/iteme", destination: "/mypage" },
+      { source: "/api/:path*", destination: `${process.env.API_URL || 'http://localhost:8080'}/api/:path*` },
     ];
   },
 };

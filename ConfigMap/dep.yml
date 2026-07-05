@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: login-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: login-app
+  template:
+    metadata:
+      labels:
+        app: login-app
+    spec:
+      containers:
+      - name: login-container
+        image: moahmed101/myconfigmap:v1
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: login-config

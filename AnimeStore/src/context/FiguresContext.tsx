@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Figure } from '@/lib/types';
 
+
+
 interface FiguresContextType {
   allFigures: Figure[];
   addFigure: (name: string, price: number, imageData: string) => Promise<void>;
@@ -17,7 +19,7 @@ export function FiguresProvider({ children }: { children: ReactNode }) {
 
   const fetchFigures = useCallback(async () => {
     try {
-      const res = await fetch('/api/figures');
+      const res = await fetch(`/api/figures`);
       const data = await res.json();
       setAllFigures(data);
     } catch (err) {
@@ -32,7 +34,7 @@ export function FiguresProvider({ children }: { children: ReactNode }) {
   }, [fetchFigures]);
 
   const addFigure = useCallback(async (name: string, price: number, imageData: string) => {
-    const res = await fetch('/api/figures', {
+    const res = await fetch(`/api/figures`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, price, image: imageData }),
