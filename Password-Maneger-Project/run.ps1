@@ -2,8 +2,9 @@ Write-Host "=== Password Manager ===" -ForegroundColor Cyan
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Delete old database for clean migration
-Remove-Item "$root\backend\database.sqlite" -ErrorAction Ignore
+# Delete old databases for clean migration (uncomment to reset)
+# Remove-Item "$root\backend\database.sqlite" -ErrorAction Ignore
+# Remove-Item "$root\backend\data\pouch" -Recurse -ErrorAction Ignore
 
 # Start backend
 Write-Host "Starting backend server..." -ForegroundColor Yellow

@@ -2,9 +2,8 @@ import { useState } from 'react';
 import {
   Container, Heading, Text, Box, Stack, Button, Flex, SelectRoot, SelectTrigger,
   SelectValueText, SelectContent, SelectItem,
-  AlertRoot, AlertIndicator, AlertContent, AlertTitle, AlertDescription,
 } from '@chakra-ui/react';
-import { Trash2, Moon, Sun } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { createListCollection } from '@ark-ui/react';
 import { resetData } from '../api';
 import { useAuth } from '../AuthContext';
@@ -43,45 +42,37 @@ export default function Settings() {
         <Box><Heading size="lg" mb={2}>{t('settings.title')}</Heading><Text color="fg.muted">{t('settings.subtitle')}</Text></Box>
 
         {message.text && (
-          <AlertRoot status={message.type}>
-            <AlertIndicator /><AlertContent>
-              <AlertTitle>{message.type === 'success' ? t('success') : t('error')}</AlertTitle>
-              <AlertDescription>{message.text}</AlertDescription>
-            </AlertContent>
-          </AlertRoot>
+          <Box p={3} bg={message.type === 'success' ? 'green.50' : 'red.50'} borderRadius="md">
+            <Text fontSize="sm" color={message.type === 'success' ? 'green.600' : 'red.600'}>{message.text}</Text>
+          </Box>
         )}
 
-        <Flex gap={4} wrap="wrap">
-          <Box flex="1" minW="200px" p={4} borderWidth="1px" borderRadius="lg">
-            <Stack gap={3} align="center">
-              {mode === 'dark' ? <Moon size={24} /> : <Sun size={24} />}
-              <Text fontWeight="medium" fontSize="sm">{t('settings.theme')}</Text>
-              <Button variant={mode === 'dark' ? 'solid' : 'outline'} size="sm" px={2} onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}>
-                {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              </Button>
-            </Stack>
-          </Box>
-          <Box flex="1" minW="200px" p={4} borderWidth="1px" borderRadius="lg">
-            <Stack gap={3} align="center">
-              <Heading size="2xl" fontFamily="mono">{lang === 'ar' ? 'ع' : lang === 'fr' ? 'F' : 'En'}</Heading>
-              <Text fontWeight="medium" fontSize="sm">{t('settings.language')}</Text>
-              <SelectRoot collection={langCollection} value={[lang]} onValueChange={({ value }) => setLang(value[0])}>
-                <SelectTrigger><SelectValueText /></SelectTrigger>
-                <SelectContent>
-                  {LANG_OPTIONS.map(item => (
-                    <SelectItem key={item.value} item={item}>{item.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </SelectRoot>
-            </Stack>
-          </Box>
+        <Flex direction="column" gap={6}>
+          <Flex align="center" gap={4}>
+            <Text fontWeight="medium" minW="100px">{t('settings.theme')}</Text>
+            <Button variant={mode === 'dark' ? 'solid' : 'outline'} size="sm" onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}>
+              {mode === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </Button>
+          </Flex>
+
+          <Flex align="center" gap={4}>
+            <Text fontWeight="medium" minW="100px">{t('settings.language')}</Text>
+            <SelectRoot collection={langCollection} value={[lang]} onValueChange={({ value }) => setLang(value[0])}>
+              <SelectTrigger><SelectValueText /></SelectTrigger>
+              <SelectContent>
+                {LANG_OPTIONS.map(item => (
+                  <SelectItem key={item.value} item={item}>{item.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </SelectRoot>
+          </Flex>
         </Flex>
 
-        <Box p={6} borderWidth="1px" borderRadius="lg" borderColor="red.300">
+        <Box borderTopWidth="1px" pt={6}>
           <Stack gap={4}>
-            <Stack direction="row" align="center" gap={3}>
+            <Flex align="center" gap={3}>
               <Trash2 size={20} color="red" /><Box><Heading size="sm" color="red.500">{t('settings.danger')}</Heading><Text fontSize="sm" color="fg.muted">{t('settings.dangerDesc')}</Text></Box>
-            </Stack>
+            </Flex>
             <Button colorScheme="red" variant="outline" maxW="250px" onClick={handleReset} disabled={resetting} loading={resetting}>{t('settings.dangerBtn')}</Button>
           </Stack>
         </Box>

@@ -24,8 +24,6 @@ const ALGO_ITEMS = [
   { value: 'aes-256-gcm', label: 'AES-256-GCM' },
   { value: 'aes-128-gcm', label: 'AES-128-GCM' },
   { value: 'aes-192-gcm', label: 'AES-192-GCM' },
-  { value: 'md5', label: 'MD5 (one-way hash)' },
-  { value: 'sha256', label: 'SHA-256 (one-way hash)' },
 ];
 const algoCollection = createListCollection({ items: ALGO_ITEMS });
 
@@ -139,11 +137,12 @@ export default function Dashboard() {
         decryptField(item.encrypted_login),
         decryptField(item.encrypted_password),
       ]);
+      const hashVal = (enc) => enc && enc.startsWith('hash:') ? '🞄🞄🞄🞄🞄🞄🞄🞄' : null;
       setDecrypted((prev) => ({
         ...prev,
         [id]: {
-          login: loginRes.data.hashMode ? '[hash only]' : loginRes.data.decrypted,
-          pass: passRes.data.hashMode ? '[hash only]' : passRes.data.decrypted,
+          login: loginRes.data.hashMode ? hashVal(item.encrypted_login) : loginRes.data.decrypted,
+          pass: passRes.data.hashMode ? hashVal(item.encrypted_password) : passRes.data.decrypted,
           hashMode: loginRes.data.hashMode || passRes.data.hashMode,
         },
       }));
@@ -153,6 +152,7 @@ export default function Dashboard() {
 
   const hashDisplay = (enc) => {
     if (!enc) return '—';
+    if (enc.startsWith('hash:')) return '🔒';
     const hex = enc.includes(':') ? enc.split(':')[1] : enc;
     return hex.slice(0, 12).toUpperCase();
   };
@@ -349,10 +349,10 @@ export default function Dashboard() {
           )}
           <Box p={6} borderWidth="1px" borderRadius="lg">
             <Stack gap={4}>
-              <FieldRoot><FieldLabel>Current Password</FieldLabel><Input type="password" value={currentPass} onChange={(e) => setCurrentPass(e.target.value)} /></FieldRoot>
-              <FieldRoot><FieldLabel>New Password</FieldLabel><Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} /></FieldRoot>
-              <FieldRoot><FieldLabel>Confirm New Password</FieldLabel><Input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} /></FieldRoot>
-              <Button variant="outline" maxW="200px" onClick={handleChangePassword} disabled={passSaving} loading={passSaving}>Change Password</Button>
+              <FieldRoot><FieldLabel>{t('profile.currentPass')}</FieldLabel><Input type="password" value={currentPass} onChange={(e) => setCurrentPass(e.target.value)} /></FieldRoot>
+              <FieldRoot><FieldLabel>{t('profile.newPass')}</FieldLabel><Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} /></FieldRoot>
+              <FieldRoot><FieldLabel>{t('profile.confirmPass')}</FieldLabel><Input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} /></FieldRoot>
+              <Button variant="outline" maxW="200px" onClick={handleChangePassword} disabled={passSaving} loading={passSaving}>{t('profile.changePassBtn')}</Button>
             </Stack>
           </Box>
         </Stack>
