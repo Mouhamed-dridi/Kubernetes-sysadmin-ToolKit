@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Center, Box, Heading, Text, Input, Button, FieldRoot, FieldLabel,
   Stack, AlertRoot, AlertIndicator, AlertContent, AlertTitle, AlertDescription,
@@ -7,9 +7,12 @@ import {
 } from '@chakra-ui/react';
 import { Lock, Shield, UserPlus, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../AuthContext';
+import { useLang } from '../LangContext';
+import { getUserCount } from '../api';
 
 export default function Login() {
   const { loginUser, register } = useAuth();
+  const { t } = useLang();
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +23,13 @@ export default function Login() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [createdUser, setCreatedUser] = useState('');
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    getUserCount().then(r => {
+      if (r.data.count === 0) setUsername('admin');
+    }).catch(() => {}).finally(() => setChecking(false));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,9 +80,9 @@ export default function Login() {
           <Box bg="blue.500" color="white" p={3} borderRadius="2xl">
             <Lock size={32} />
           </Box>
-          <Heading size="xl">Password Manager</Heading>
+          <Heading size="xl">{t('app.name')}</Heading>
           <Text color="fg.muted" textAlign="center">
-            {mode === 'login' ? 'Sign in to your vault' : 'Create a new account'}
+            {checking ? t('app.loading') : (mode === 'login' ? t('login.title') : t('login.subtitle'))}
           </Text>
         </Stack>
 
@@ -80,7 +90,7 @@ export default function Login() {
           <AlertRoot status="error" mb={4}>
             <AlertIndicator />
             <AlertContent>
-              <AlertTitle>Error</AlertTitle>
+              <AlertTitle>{t('error')}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </AlertContent>
           </AlertRoot>
@@ -89,9 +99,9 @@ export default function Login() {
         <Box as="form" onSubmit={handleSubmit}>
           <Stack gap={4}>
             <FieldRoot>
-              <FieldLabel>Username</FieldLabel>
+              <FieldLabel>{t('login.username')}</FieldLabel>
               <Input
-                placeholder="Enter username"
+                placeholder={t('login.enterUser')}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -99,7 +109,7 @@ export default function Login() {
             </FieldRoot>
 
             <FieldRoot>
-              <FieldLabel>Password</FieldLabel>
+              <FieldLabel>{t('login.password')}</FieldLabel>
               <InputGroup endElement={
                 <Button variant="ghost" size="xs" onClick={() => setShowPass(!showPass)} px={1} minW="auto">
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -107,7 +117,7 @@ export default function Login() {
               }>
                 <Input
                   type={showPass ? 'text' : 'password'}
-                  placeholder="Enter password"
+                  placeholder={t('login.enterPass')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -117,7 +127,7 @@ export default function Login() {
 
             {mode === 'register' && (
               <FieldRoot>
-                <FieldLabel>Confirm Password</FieldLabel>
+                <FieldLabel>{t('login.confirm')}</FieldLabel>
                 <InputGroup endElement={
                   <Button variant="ghost" size="xs" onClick={() => setShowConfirm(!showConfirm)} px={1} minW="auto">
                     {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -125,7 +135,7 @@ export default function Login() {
                 }>
                   <Input
                     type={showConfirm ? 'text' : 'password'}
-                    placeholder="Confirm password"
+                    placeholder={t('login.enterConfirm')}
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     required
@@ -134,8 +144,8 @@ export default function Login() {
               </FieldRoot>
             )}
 
-            <Button type="submit" colorScheme="blue" size="lg" disabled={loading} loading={loading}>
-              {mode === 'login' ? 'Sign In' : 'Create Account'}
+            <Button type="submit" colorScheme="blue" size="lg" disabled={loading || checking} loading={loading}>
+              {mode === 'login' ? t('login.signin') : t('login.create')}
             </Button>
           </Stack>
         </Box>
@@ -143,14 +153,14 @@ export default function Login() {
         <Stack align="center" mt={6} gap={2}>
           <Button variant="link" size="sm" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>
             {mode === 'login' ? (
-              <><UserPlus size={14} style={{ marginRight: 4 }} /> Create new account</>
+              <><UserPlus size={14} style={{ marginRight: 4 }} /> {t('login.createLink')}</>
             ) : (
-              'Already have an account? Sign in'
+              t('login.existingLink')
             )}
           </Button>
           <Text fontSize="xs" color="fg.muted">
             <Shield size={12} style={{ display: 'inline', marginRight: 4 }} />
-            Your data is encrypted with AES-256
+            {t('login.encrypted')}
           </Text>
         </Stack>
       </Box>
@@ -161,15 +171,15 @@ export default function Login() {
           <DialogHeader>
             <DialogTitle display="flex" alignItems="center" gap={2}>
               <CheckCircle size={20} color="green" />
-              Account Created
+              {t('dialog.accountCreated')}
             </DialogTitle>
           </DialogHeader>
           <DialogDescription>
-            Account <strong>{createdUser}</strong> has been created successfully! You can now sign in.
+            {t('dialog.createdMsg', { username: createdUser })}
           </DialogDescription>
           <DialogFooter>
             <DialogActionTrigger asChild>
-              <Button colorScheme="blue">Sign In</Button>
+              <Button colorScheme="blue">{t('dialog.signIn')}</Button>
             </DialogActionTrigger>
           </DialogFooter>
         </DialogContent>

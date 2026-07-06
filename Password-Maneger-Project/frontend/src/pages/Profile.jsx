@@ -8,9 +8,11 @@ import { Camera, Lock, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { updateProfile, changePassword, uploadAvatar } from '../api';
 import { useAuth } from '../AuthContext';
+import { useLang } from '../LangContext';
 
 export default function Profile() {
   const { user } = useAuth();
+  const { t } = useLang();
   const navigate = useNavigate();
   const fileRef = useRef(null);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -30,7 +32,7 @@ export default function Profile() {
     setSaving(true);
     try {
       await updateProfile(username);
-      showMsg('success', 'Profile updated');
+      showMsg('success', t('profile.updateSuccess'));
     } catch (err) {
       showMsg('error', err.response?.data?.error || 'Update failed');
     } finally {
@@ -40,13 +42,13 @@ export default function Profile() {
 
   const handleChangePassword = async () => {
     if (!currentPass || !newPass) return showMsg('error', 'Fill all fields');
-    if (newPass !== confirmPass) return showMsg('error', 'Passwords do not match');
-    if (newPass.length < 4) return showMsg('error', 'Password must be at least 4 characters');
+    if (newPass !== confirmPass) return showMsg('error', t('login.error.match'));
+    if (newPass.length < 4) return showMsg('error', t('login.error.length'));
     setSaving(true);
     try {
       await changePassword(currentPass, newPass);
       setCurrentPass(''); setNewPass(''); setConfirmPass('');
-      showMsg('success', 'Password changed');
+      showMsg('success', t('profile.passwordChanged'));
     } catch (err) {
       showMsg('error', err.response?.data?.error || 'Change failed');
     } finally {
@@ -61,7 +63,7 @@ export default function Profile() {
     reader.onload = async () => {
       try {
         await uploadAvatar(reader.result);
-        showMsg('success', 'Avatar updated');
+        showMsg('success', t('profile.avatarUpdated'));
       } catch {
         showMsg('error', 'Avatar upload failed');
       }
@@ -77,21 +79,20 @@ export default function Profile() {
             <ArrowLeft size={20} />
           </Button>
           <Box>
-            <Heading size="lg">Profile</Heading>
-            <Text color="fg.muted">Edit your profile and password</Text>
+            <Heading size="lg">{t('profile.title')}</Heading>
+            <Text color="fg.muted">{t('profile.subtitle')}</Text>
           </Box>
         </Flex>
 
         {message.text && (
           <AlertRoot status={message.type}>
             <AlertIndicator /><AlertContent>
-              <AlertTitle>{message.type === 'success' ? 'Success' : 'Error'}</AlertTitle>
+              <AlertTitle>{message.type === 'success' ? t('success') : t('error')}</AlertTitle>
               <AlertDescription>{message.text}</AlertDescription>
             </AlertContent>
           </AlertRoot>
         )}
 
-        {/* Avatar + Username */}
         <Box p={6} borderWidth="1px" borderRadius="lg">
           <Stack gap={4} align="center">
             <Box position="relative" onClick={() => fileRef.current?.click()} cursor="pointer" boxSize="80px">
@@ -104,26 +105,25 @@ export default function Profile() {
               </Flex>
             </Box>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleAvatar} />
-            <Text fontSize="sm" color="fg.muted" mt={-2}>Click avatar to change photo</Text>
+            <Text fontSize="sm" color="fg.muted" mt={-2}>{t('profile.changePhoto')}</Text>
           </Stack>
           <Separator my={4} />
           <Stack gap={4}>
             <FieldRoot>
-              <FieldLabel>Username</FieldLabel>
+              <FieldLabel>{t('login.username')}</FieldLabel>
               <Input value={username} onChange={(e) => setUsername(e.target.value)} />
             </FieldRoot>
-            <Button variant="outline" onClick={handleUpdateProfile} disabled={saving} loading={saving} maxW="120px">Save</Button>
+            <Button variant="outline" onClick={handleUpdateProfile} disabled={saving} loading={saving} maxW="120px">{t('profile.save')}</Button>
           </Stack>
         </Box>
 
-        {/* Change Password */}
         <Box p={6} borderWidth="1px" borderRadius="lg">
-          <Heading size="sm" mb={4} display="flex" alignItems="center" gap={2}><Lock size={18} /> Change Password</Heading>
+          <Heading size="sm" mb={4} display="flex" alignItems="center" gap={2}><Lock size={18} /> {t('profile.changePassword')}</Heading>
           <Stack gap={4}>
-            <FieldRoot><FieldLabel>Current Password</FieldLabel><Input type="password" value={currentPass} onChange={(e) => setCurrentPass(e.target.value)} /></FieldRoot>
-            <FieldRoot><FieldLabel>New Password</FieldLabel><Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} /></FieldRoot>
-            <FieldRoot><FieldLabel>Confirm New Password</FieldLabel><Input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} /></FieldRoot>
-            <Button variant="outline" onClick={handleChangePassword} disabled={saving} loading={saving} maxW="180px">Change Password</Button>
+            <FieldRoot><FieldLabel>{t('profile.currentPass')}</FieldLabel><Input type="password" value={currentPass} onChange={(e) => setCurrentPass(e.target.value)} /></FieldRoot>
+            <FieldRoot><FieldLabel>{t('profile.newPass')}</FieldLabel><Input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} /></FieldRoot>
+            <FieldRoot><FieldLabel>{t('profile.confirmPass')}</FieldLabel><Input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} /></FieldRoot>
+            <Button variant="outline" onClick={handleChangePassword} disabled={saving} loading={saving} maxW="180px">{t('profile.changePassBtn')}</Button>
           </Stack>
         </Box>
       </Stack>

@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
@@ -9,7 +11,11 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+
+// Ensure data directory exists
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // In-memory token store (token -> userId)
 const tokens = new Map();
@@ -17,38 +23,42 @@ const tokens = new Map();
 // Database setup with migration
 const db = new sqlite3.Database('./database.sqlite', (err) => {
     if (err) console.error('Database connection error:', err);
-    else {
-        // Drop old single-user tables, recreate with new schema
-        db.run(`DROP TABLE IF EXISTS config`);
-        db.run(`DROP TABLE IF EXISTS passwords`);
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            avatar TEXT,
-            is_admin INTEGER DEFAULT 0
-        )`);
-        db.run(`ALTER TABLE users ADD COLUMN avatar TEXT`, () => {});
-        db.run(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`, () => {});
-        db.run(`CREATE TABLE IF NOT EXISTS passwords (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            title TEXT,
-            encrypted_login TEXT,
-            encrypted_password TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )`);
-        db.run(`CREATE TABLE IF NOT EXISTS config (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        )`);
-        db.run(`INSERT OR IGNORE INTO config (key, value) VALUES ('encryption_algo', 'aes-256-cbc')`);
-    }
 });
 
-// Encryption setup (AES-256-CBC)
+db.serialize(() => {
+    db.run(`DROP TABLE IF EXISTS config`);
+    db.run(`DROP TABLE IF EXISTS passwords`);
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        avatar TEXT,
+        is_admin INTEGER DEFAULT 0
+    )`);
+    db.run(`ALTER TABLE users ADD COLUMN avatar TEXT`, () => {});
+    db.run(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`, () => {});
+    db.run(`CREATE TABLE IF NOT EXISTS passwords (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        title TEXT,
+        encrypted_login TEXT,
+        encrypted_password TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS config (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    )`);
+    db.run(`INSERT OR IGNORE INTO config (key, value) VALUES ('encryption_algo', 'aes-256-cbc')`);
+
+    // Load encryption algo from config on startup
+    db.get(`SELECT value FROM config WHERE key = 'encryption_algo'`, [], (err, row) => {
+        if (row && (ALGO_KEY_LENGTHS[row.value] || row.value === 'md5' || row.value === 'sha256')) encryptionAlgo = row.value;
+    });
+});
+
+// Encryption setup (AES-256-CBC + hash support)
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
-const IV_LENGTH = 16;
 let encryptionAlgo = 'aes-256-cbc';
 
 const ALGO_KEY_LENGTHS = {
@@ -64,17 +74,17 @@ function getAlgoKey(algo) {
     const len = ALGO_KEY_LENGTHS[algo] || 32;
     const key = Buffer.from(ENCRYPTION_KEY, 'hex');
     if (key.length === len) return key;
-    // Derive correct key length via hash
     return crypto.createHash('sha256').update(ENCRYPTION_KEY).digest().subarray(0, len);
 }
 
 function encrypt(text) {
     if (!text) return text;
     const algo = encryptionAlgo;
+    if (algo === 'md5') return 'hash:md5:' + crypto.createHash('md5').update(text).digest('hex');
+    if (algo === 'sha256') return 'hash:sha256:' + crypto.createHash('sha256').update(text).digest('hex');
     const key = getAlgoKey(algo);
     const isGCM = algo.endsWith('-gcm');
-    const ivLength = isGCM ? 16 : 16;
-    let iv = crypto.randomBytes(ivLength);
+    let iv = crypto.randomBytes(16);
     let cipher = crypto.createCipheriv(algo, key, iv);
     let encrypted = cipher.update(text, 'utf8');
     encrypted = Buffer.concat([encrypted, cipher.final()]);
@@ -88,6 +98,7 @@ function encrypt(text) {
 function decrypt(text) {
     if (!text) return text;
     const algo = encryptionAlgo;
+    if (text.startsWith('hash:')) return '[hash only - cannot decrypt]';
     const key = getAlgoKey(algo);
     const isGCM = algo.endsWith('-gcm');
     if (isGCM) {
@@ -110,10 +121,23 @@ function decrypt(text) {
     return decrypted.toString();
 }
 
-// Load encryption algo from config on startup
-db.get(`SELECT value FROM config WHERE key = 'encryption_algo'`, [], (err, row) => {
-    if (row && ALGO_KEY_LENGTHS[row.value]) encryptionAlgo = row.value;
-});
+// Auto-save helpers
+function saveAccountsFile(username) {
+    const line = JSON.stringify({ timestamp: new Date().toISOString(), username }) + '\n';
+    fs.appendFileSync(path.join(DATA_DIR, 'accounts.json'), line, 'utf8');
+}
+
+function saveUploadSnapshot(userId, username, items) {
+    const timestamp = Date.now();
+    const filename = `upload_${timestamp}_user${userId}.json`;
+    fs.writeFileSync(path.join(DATA_DIR, filename), JSON.stringify({ timestamp, userId, username, items }, null, 2), 'utf8');
+}
+
+function savePasswordsBackup(userId, username, passwords) {
+    const timestamp = Date.now();
+    const filename = `passwords_backup_${timestamp}.json`;
+    fs.writeFileSync(path.join(DATA_DIR, filename), JSON.stringify({ timestamp, userId, username, count: passwords.length, passwords }, null, 2), 'utf8');
+}
 
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
@@ -132,6 +156,14 @@ function authenticate(req, res, next) {
 
 // --- Endpoints ---
 
+// Get total user count (for first-access flow)
+app.get('/api/users/count', (req, res) => {
+    db.get(`SELECT COUNT(*) as count FROM users`, [], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ count: row.count });
+    });
+});
+
 // Register new user
 app.post('/api/register', (req, res) => {
     const { username, password } = req.body;
@@ -144,6 +176,7 @@ app.post('/api/register', (req, res) => {
             if (err.message.includes('UNIQUE')) return res.status(400).json({ error: 'Username already exists' });
             return res.status(500).json({ error: err.message });
         }
+        saveAccountsFile(username);
         const token = generateToken();
         tokens.set(token, this.lastID);
         res.json({ success: true, token, user: { id: this.lastID, username, is_admin: false } });
@@ -248,6 +281,16 @@ app.post('/api/upload', authenticate, (req, res) => {
         stmt.run(req.userId, item.title || 'Untitled', encLogin, encPass);
     });
     stmt.finalize();
+
+    // Auto-save uploaded items and backup
+    db.get(`SELECT username FROM users WHERE id = ?`, [req.userId], (err, user) => {
+        const username = user ? user.username : 'unknown';
+        saveUploadSnapshot(req.userId, username, items);
+        db.all(`SELECT * FROM passwords WHERE user_id = ?`, [req.userId], (err2, rows) => {
+            if (!err2) savePasswordsBackup(req.userId, username, rows);
+        });
+    });
+
     res.json({ success: true, count: items.length });
 });
 
@@ -255,6 +298,7 @@ app.post('/api/upload', authenticate, (req, res) => {
 app.post('/api/decrypt', (req, res) => {
     const { encryptedText } = req.body;
     if (!encryptedText) return res.status(400).json({ error: 'Missing encrypted text' });
+    if (encryptedText.startsWith('hash:')) return res.json({ decrypted: null, hashMode: true });
     try {
         const decrypted = decrypt(encryptedText);
         res.json({ decrypted });
@@ -330,7 +374,8 @@ app.post('/api/admin/config', authenticate, adminAuth, (req, res) => {
     if (!key || value === undefined) return res.status(400).json({ error: 'Key and value required' });
 
     if (key === 'encryption_algo') {
-        if (!ALGO_KEY_LENGTHS[value]) return res.status(400).json({ error: 'Invalid algorithm' });
+        const valid = ALGO_KEY_LENGTHS[value] || value === 'md5' || value === 'sha256';
+        if (!valid) return res.status(400).json({ error: 'Invalid algorithm' });
         encryptionAlgo = value;
     }
 
@@ -344,6 +389,7 @@ app.post('/api/admin/config', authenticate, adminAuth, (req, res) => {
 function seedDefault() {
     const hash = bcrypt.hashSync('admin123', 10);
     db.run(`INSERT OR IGNORE INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)`, ['admin', hash]);
+    db.run(`UPDATE users SET is_admin = 1, password_hash = ? WHERE username = 'admin'`, [hash]);
     console.log('Default account: admin / admin123');
 }
 

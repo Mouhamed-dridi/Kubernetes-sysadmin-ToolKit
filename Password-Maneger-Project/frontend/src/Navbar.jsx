@@ -1,20 +1,21 @@
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { Flex, Box, Heading, Text, Link, Separator, Button, MenuRoot, MenuTrigger, MenuContent, MenuItem, MenuSeparator } from '@chakra-ui/react';
 import { useAuth } from './AuthContext';
+import { useLang } from './LangContext';
 import { Lock, Upload, Table, Settings, LogOut, User } from 'lucide-react';
 
 const navItems = [
-  { path: '/dashboard', label: 'Passwords', icon: Table },
-  { path: '/upload', label: 'Upload', icon: Upload },
-  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/dashboard', label: 'nav.passwords', icon: Table },
+  { path: '/upload', label: 'nav.upload', icon: Upload },
+  { path: '/settings', label: 'nav.settings', icon: Settings },
 ];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useLang();
   const location = useLocation();
   const navigate = useNavigate();
   const initial = user?.username?.charAt(0).toUpperCase() || 'U';
-  const visibleItems = user?.is_admin ? navItems.filter(i => i.path !== '/upload') : navItems;
 
   return (
     <Box as="nav" borderBottomWidth="1px" bg="bg.panel" px={6} py={3}>
@@ -22,11 +23,11 @@ export default function Navbar() {
         <Flex align="center" gap={2}>
           <Lock size={22} />
           <Heading size="md" as={RouterLink} to="/dashboard" css={{ textDecoration: 'none' }}>
-            Password Manager
+            {t('app.name')}
           </Heading>
         </Flex>
         <Flex align="center" gap={1}>
-          {visibleItems.map((item) => {
+          {!user?.is_admin && navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (
@@ -46,7 +47,7 @@ export default function Navbar() {
                 fontSize="sm"
               >
                 <Icon size={16} />
-                {item.label}
+                {t(item.label)}
               </Link>
             );
           })}
@@ -63,12 +64,18 @@ export default function Navbar() {
             <MenuContent>
               <MenuItem value="profile" onClick={() => navigate('/profile')}>
                 <User size={16} />
-                Profile
+                {t('nav.profile')}
               </MenuItem>
+              {user?.is_admin && (
+                <MenuItem value="settings" onClick={() => navigate('/settings')}>
+                  <Settings size={16} />
+                  {t('nav.settings')}
+                </MenuItem>
+              )}
               <MenuSeparator />
               <MenuItem value="logout" onClick={logout}>
                 <LogOut size={16} />
-                Logout
+                {t('nav.logout')}
               </MenuItem>
             </MenuContent>
           </MenuRoot>

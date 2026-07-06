@@ -27,5 +27,6 @@ export const getUsers = () => api.get('/admin/users');
 export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
 export const getConfig = () => api.get('/admin/config');
 export const updateConfig = (key, value) => api.post('/admin/config', { key, value });
+export const getUserCount = () => api.get('/users/count');
 
 export default api;

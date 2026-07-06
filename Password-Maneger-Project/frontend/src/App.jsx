@@ -3,6 +3,7 @@ import { Box, Spinner, Center } from '@chakra-ui/react';
 import { AuthProvider, useAuth } from './AuthContext';
 import { PasswordsProvider } from './PasswordsContext';
 import { ThemeProvider } from './ThemeContext';
+import { LangProvider } from './LangContext';
 import Login from './pages/Login';
 import Upload from './pages/Upload';
 import Dashboard from './pages/Dashboard';
@@ -52,11 +53,13 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <PasswordsProvider>
-          <AppContent />
-        </PasswordsProvider>
-      </AuthProvider>
+      <LangProvider>
+        <AuthProvider>
+          <PasswordsProvider>
+            <AppContent />
+          </PasswordsProvider>
+        </AuthProvider>
+      </LangProvider>
     </ThemeProvider>
   );
 }
