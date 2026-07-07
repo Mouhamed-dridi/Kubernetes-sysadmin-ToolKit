@@ -11,11 +11,12 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 router.post('/', authenticate, async (req, res) => {
-  const { title, login, password } = req.body;
+  const { title, url, login, password } = req.body;
   if (!title || !login || !password) return res.status(400).json({ error: 'title, login, password required' });
+  const encUrl = encrypt(url || '');
   const encLogin = encrypt(login);
   const encPass = encrypt(password);
-  const item = await db.createPassword(req.userId, title, encLogin, encPass);
+  const item = await db.createPassword(req.userId, title, encUrl, encLogin, encPass);
   res.json({ success: true, item });
 });
 
@@ -29,9 +30,10 @@ router.post('/upload', authenticate, async (req, res) => {
   const items = req.body.items;
   if (!items || !Array.isArray(items)) return res.status(400).json({ error: 'Invalid items' });
   for (const item of items) {
+    const encUrl = encrypt(item.url || '');
     const encLogin = encrypt(item.login || '');
     const encPass = encrypt(item.password || '');
-    await db.createPassword(req.userId, item.title || 'Untitled', encLogin, encPass);
+    await db.createPassword(req.userId, item.title || 'Untitled', encUrl, encLogin, encPass);
   }
   const user = await db.getUserById(req.userId);
   const username = user ? user.username : 'unknown';

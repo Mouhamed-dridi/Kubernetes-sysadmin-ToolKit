@@ -133,7 +133,8 @@ export default function Dashboard() {
     const item = passwords.find((p) => p.id === id);
     if (!item) return;
     try {
-      const [loginRes, passRes] = await Promise.all([
+      const [urlRes, loginRes, passRes] = await Promise.all([
+        item.url ? decryptField(item.url) : { data: { decrypted: null } },
         decryptField(item.encrypted_login),
         decryptField(item.encrypted_password),
       ]);
@@ -141,9 +142,10 @@ export default function Dashboard() {
       setDecrypted((prev) => ({
         ...prev,
         [id]: {
+          url: urlRes.data.hashMode ? hashVal(item.url) : urlRes.data.decrypted,
           login: loginRes.data.hashMode ? hashVal(item.encrypted_login) : loginRes.data.decrypted,
           pass: passRes.data.hashMode ? hashVal(item.encrypted_password) : passRes.data.decrypted,
-          hashMode: loginRes.data.hashMode || passRes.data.hashMode,
+          hashMode: urlRes.data.hashMode || loginRes.data.hashMode || passRes.data.hashMode,
         },
       }));
       setUnlocked((prev) => ({ ...prev, [id]: true }));
@@ -413,7 +415,8 @@ export default function Dashboard() {
           <TableRoot>
             <TableHeader>
               <TableRow>
-                <TableColumnHeader>Title</TableColumnHeader>
+                <TableColumnHeader>Name</TableColumnHeader>
+                <TableColumnHeader>URL</TableColumnHeader>
                 <TableColumnHeader>Login</TableColumnHeader>
                 <TableColumnHeader>Password</TableColumnHeader>
                 <TableColumnHeader w="80px">Lock</TableColumnHeader>
@@ -426,6 +429,11 @@ export default function Dashboard() {
                 return (
                   <TableRow key={item.id}>
                     <TableCell fontWeight="medium">{item.title || 'Untitled'}</TableCell>
+                    <TableCell>
+                      <Text fontFamily="mono" fontSize="xs" color={open ? 'inherit' : 'fg.muted'} maxW="200px" truncate>
+                        {open && data ? data.url : (item.url ? hashDisplay(item.url) : '—')}
+                      </Text>
+                    </TableCell>
                     <TableCell>
                       <Text fontFamily="mono" fontSize="xs" color={open ? 'inherit' : 'fg.muted'}>
                         {open && data ? data.login : hashDisplay(item.encrypted_login)}

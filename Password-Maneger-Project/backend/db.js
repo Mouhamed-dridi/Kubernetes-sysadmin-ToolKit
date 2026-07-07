@@ -66,13 +66,14 @@ async function userCount() {
 }
 
 // --- Password helpers ---
-async function createPassword(userId, title, encryptedLogin, encryptedPassword) {
+async function createPassword(userId, title, encryptedUrl, encryptedLogin, encryptedPassword) {
   const id = await getNextId('password_id');
   const doc = {
     _id: 'password:' + userId + ':' + id,
     type: 'password',
     user_id: 'user:' + userId,
     title: title || 'Untitled',
+    url: encryptedUrl || '',
     encrypted_login: encryptedLogin || '',
     encrypted_password: encryptedPassword || '',
   };
@@ -86,7 +87,7 @@ async function getPasswordsByUser(userId) {
   return result.rows.map(r => {
     const doc = r.doc;
     const idPart = doc._id.split(':').pop();
-    return { id: parseInt(idPart), user_id: parseInt(userId), title: doc.title, encrypted_login: doc.encrypted_login, encrypted_password: doc.encrypted_password };
+    return { id: parseInt(idPart), user_id: parseInt(userId), title: doc.title, url: doc.url || '', encrypted_login: doc.encrypted_login || '', encrypted_password: doc.encrypted_password || '' };
   });
 }
 

@@ -18,10 +18,11 @@ function looksLikeData(val) {
 
 function detectColumns(headers, firstRow) {
   const h = headers.map((h) => h.toLowerCase().trim());
-  const siteKey = h.find((c) => /^(site|url|website|title|service|app|platform)$/i.test(c));
+  const siteKey = h.find((c) => /^(site|url|website|title|service|app|platform|name)$/i.test(c));
+  const urlKey = h.find((c) => /^(login_?url|url|link|href)$/i.test(c));
   const loginKey = h.find((c) => /login|username|email|user|account/i.test(c));
   const passKey = h.find((c) => /pass|password|secret|key/i.test(c));
-  if (loginKey && passKey) return { mode: 'header', siteKey, loginKey, passKey };
+  if (loginKey && passKey) return { mode: 'header', siteKey, urlKey, loginKey, passKey };
   if (firstRow && firstRow.length >= 2 && firstRow.every((v) => !looksLikeData(v))) {
     return null;
   }
@@ -104,6 +105,12 @@ export default function Upload() {
     return detected.siteIdx >= 0 ? (row[detected.siteIdx] || '') : '';
   };
 
+  const getUrl = (row) => {
+    if (!detected) return '';
+    if (detected.mode === 'header' && detected.urlKey) return row[detected.urlKey] || '';
+    return '';
+  };
+
   const getLogin = (row) => {
     if (!detected) return '';
     if (detected.mode === 'header') {
@@ -126,6 +133,7 @@ export default function Upload() {
     try {
       const items = parsedData.map((row) => ({
         title: getSite(row) || fileName.replace(/\.csv$/i, ''),
+        url: getUrl(row),
         login: getLogin(row),
         password: getPassword(row),
       }));
@@ -232,7 +240,8 @@ export default function Upload() {
               <TableRoot>
                 <TableHeader>
                   <TableRow>
-                    <TableColumnHeader>Site</TableColumnHeader>
+                    <TableColumnHeader>Name</TableColumnHeader>
+                    <TableColumnHeader>URL</TableColumnHeader>
                     <TableColumnHeader>Login</TableColumnHeader>
                     <TableColumnHeader>Password</TableColumnHeader>
                   </TableRow>
@@ -241,6 +250,7 @@ export default function Upload() {
                   {parsedData.slice(0, 10).map((row, i) => (
                     <TableRow key={i}>
                       <TableCell fontWeight="medium">{getSite(row) || '—'}</TableCell>
+                      <TableCell fontSize="sm" color="fg.muted" maxW="200px" truncate>{getUrl(row) || '—'}</TableCell>
                       <TableCell>{getLogin(row)}</TableCell>
                       <TableCell color="fg.muted">••••••••</TableCell>
                     </TableRow>
